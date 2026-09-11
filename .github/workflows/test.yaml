@@ -1,7 +1,27 @@
 name: Build and Test
+run-name: "Build and Test ${{ inputs.leg || github.event_name }} ${{ inputs.racecar_run }}"
 
-on: [push]
+on:
+  push:
 
+  workflow_dispatch:
+    inputs:
+      leg:
+        description: "baseline (uninstrumented) or instrumented (under chalk/curiosity)"
+        type: choice
+        options: [instrumented, baseline]
+        default: baseline
+      profile:
+        description: "CrashOverride chalk profile"
+        type: string
+        default: curiosity-tests-racecar
+      racecar_run:
+        description: "racecar correlation token, echoed into the run name"
+        type: string
+        default: ""
+
+env:
+  CHALK_ON: ${{ inputs.leg == 'instrumented' }}
 jobs:
     build:
         runs-on: ubuntu-latest
@@ -21,6 +41,7 @@ jobs:
             - name: Install wasm-pack
               run: cargo install wasm-pack
             - name: Download circom v2.1.9 (Linux)
+              continue-on-error: true   # racecar: scan/report/push step, must not fail the build
               run: wget https://github.com/iden3/circom/releases/download/v2.1.9/circom-linux-amd64 -O /usr/local/bin/circom && chmod +x /usr/local/bin/circom
             - name: Install yarn
               run: npm install -g yarn
